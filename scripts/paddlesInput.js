@@ -90,15 +90,11 @@ function paddlesInputButtonsEvents() {
 		// left
 		if(paddleKeyCodeInputs_left.includes(ev.code)) {
 			setState_PaddlesInput("ON", "left");
-
-			isInputDown_leftPaddle = true;
 		}
 
 		// right
 		if(paddleKeyCodeInputs_right.includes(ev.code)) {
 			setState_PaddlesInput("ON", "right");
-
-			isInputDown_rightPaddle = true;
 		}
 	});
 
@@ -125,7 +121,19 @@ function setState_PaddlesInput(state, paddlesInput_groupName) {
 
 	if(state === "ON") {
 		paddlesInput_group.element.classList.add("paddlesInput_button_active");
+
+		if(paddlesInput_groupName === "left") {
+			isInputDown_leftPaddle = true;
+		} else if(paddlesInput_groupName === "right") {
+			isInputDown_rightPaddle = true;
+		}
 	} else if(state === "OFF") {
 		paddlesInput_group.element.classList.remove("paddlesInput_button_active");
+
+		if(paddlesInput_groupName === "left") {
+			isInputDown_leftPaddle = false;
+		} else if(paddlesInput_groupName === "right") {
+			isInputDown_rightPaddle = false;
+		}
 	}
 }
