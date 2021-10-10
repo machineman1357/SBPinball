@@ -5,7 +5,7 @@ const config = {
     width: 565,
 	height: window.innerHeight,
 	canvas: document.getElementById('gameCanvas'),
-	// pixelArt: true,
+	pixelArt: true,
     scene: {
         preload: preload,
         create: create,
@@ -16,7 +16,7 @@ const config = {
 		matter: {
 			gravity: {
                 x: 0,
-				y: 0.0
+				y: 0.3
             },
 		  	// debug: true,
 			plugins: {

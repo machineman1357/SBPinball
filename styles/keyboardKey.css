@@ -1,0 +1,20 @@
+.keyboardKeys_container {
+	display: flex;
+}
+
+.keyboardKey_container {
+	width: 18px;
+    height: 18px;
+    border: 2px solid white;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 18px;
+    border-radius: 5px;
+    line-height: 0;
+}
+
+.keyboardKey_container:first-child {
+	margin-right: 1px;
+}
