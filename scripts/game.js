@@ -1,28 +1,35 @@
+import { aavegotchiHandWave, aavegotchiHandWave_start } from "./aavegotchiHandWave.js";
 import { COLLISION_CATEGORIES } from "./collisionCategories.js";
 import { set_cursorElement } from "./debugElements.js";
 import { isInputDown_leftPaddle, isInputDown_rightPaddle, setNewPaddlesInputContainerSize } from "./paddlesInput.js";
-import { game } from "./phaserSetup.js";
 
-let mainScene;
+export let mainScene;
 
 let ball;
-const PADDLE_PULL = 0.00015;
+const PADDLE_PULL = 0.0005;
+const ballShootPosition = [552, 777];
+
+const bg_scrubbed_collisionShape = {
+	x: 385,
+	y: 480
+}
 
 export function preload () {
-	this.load.atlas('bg', 'assets/images/bg.png', 'assets/images/bg.json');
+	this.load.atlas('bg_scrubbed', 'assets/images/bg_scrubbed.png', 'assets/images/bg_scrubbed.json');
 
+	this.load.image("bg_ref", "./assets/images/bg_ref.png");
 	this.load.image("pinball", "./assets/images/pinball.png");
 	this.load.image("paddle", "./assets/images/paddle.png");
-	this.load.image("sun", "./assets/images/sun.png");
+	this.load.image("aavegotchiHand", "./assets/images/aavegotchiHand_l_up.png");
 
 	// Load body shapes from JSON file generated using PhysicsEditor
-    this.load.json('shapes', 'assets/json/testPhysicsShape.json');
+    this.load.json('shapes', 'assets/json/bg_scrubbed.json');
 }
 
 export function create () {
 	mainScene = this;
 
-	mainScene.matter.world.setBounds();
+	// mainScene.matter.world.setBounds();
 
 	createMapObjects();
 
@@ -32,17 +39,53 @@ export function create () {
 	createPaddleStoppers();
 	
 	setUpEvents();
+	adjustCamera();
+	aavegotchiHandWave_start();
 }
 
 export function update () {
-	
+	aavegotchiHandWave.aavegotchiHandWave_update();
+}
+
+// check if the inputted names (nameA & nameB) match the must be names in either order, and return the order of the matched names
+function isCompareEitherOr(nameA, nameB, nameAMustBe, nameBMustBe) {
+	if(nameA === nameAMustBe && nameB === nameBMustBe) {
+		return {
+			isSuccess: true,
+			nameA: nameAMustBe,
+			nameB: nameBMustBe
+		};
+	};
+
+	if(nameA === nameBMustBe && nameB === nameAMustBe) {
+		return {
+			isSuccess: true,
+			nameA: nameBMustBe,
+			nameB: nameAMustBe
+		};
+	}
+
+	return {
+		isSuccess: false
+	};
+}
+
+function adjustCamera() {
+	mainScene.cameras.main.zoom = 0.87;
+	mainScene.cameras.main.setScroll(40, 50);
 }
 
 function createMapObjects() {
 	// bg
-	mainScene.add.image(0, 0, "bg", "Frame_15_medium")
+	mainScene.add.image(0, 0, "bg_scrubbed", "bg_scrubbed")
 		.setOrigin(0, 0)
-		.setAlpha(0.1);
+		// .setAlpha(0.1);
+	
+	// bg ref
+	// mainScene.add.image(0, 0, "bg_ref")
+	// 	.setOrigin(0, 0)
+	// 	.setAlpha(0.5)
+	// 	.setDepth(2);
 	
 	// const ball_visual = this.add.sprite(0, 0, "ball").setDepth(1);
 	// const ball_body = this.matter.add.circle(481, 788, 16);
@@ -52,17 +95,18 @@ function createMapObjects() {
 
 	// bg collider
 	var shapes = mainScene.cache.json.get('shapes');
-	mainScene.matter.add.sprite(350, 400, "bg", "Frame_15_medium", {shape: shapes.Frame_15_medium})
+	mainScene.matter.add.sprite(bg_scrubbed_collisionShape.x, bg_scrubbed_collisionShape.y, "bg_scrubbed", "bg_scrubbed", {shape: shapes.bg_scrubbed})
 		// .setOrigin(0, 0)
 		.setAlpha(0.0);
 }
 
 function createBall() {
-	ball = mainScene.matter.add.image(481, 788, 'pinball', null, {
+	ball = mainScene.matter.add.image(ballShootPosition[0], ballShootPosition[1], 'pinball', null, {
 		shape: {
             type: 'circle',
             radius: 12
-        }
+        },
+		label: "PlayerBall"
 	}).setDepth(1);
 	ball.setFriction(0.0001);
 	ball.setBounce(0.1);
@@ -79,16 +123,30 @@ function setUpEvents() {
 	window.onresize = function() {
 		setNewPaddlesInputContainerSize();
 	}
+
+	// shoot playerball up if sensed by ball shooter force sensor
+	mainScene.matter.world.on('collisionstart', function (event, bodyA, bodyB) {
+		const compareData_PB_BSFS = isCompareEitherOr(bodyA.label, bodyB.label, "PlayerBall", "ballShootForceSensor");
+		const compareData_PB_FRS = isCompareEitherOr(bodyA.label, bodyB.label, "PlayerBall", "failResetSensor");
+
+		if(compareData_PB_BSFS.isSuccess) {
+			ball.setVelocity(0, -25 + Phaser.Math.Between(-2, 2));
+		} else if(compareData_PB_FRS.isSuccess) {
+			ball.setPosition(ballShootPosition[0], ballShootPosition[1]);
+		}
+	});
 }
 
 function createPaddleStoppers() {
 	// left
-	createPaddleStopper(172, 845, "left", "down");
-	createPaddleStopper(172, 714, "left", "up");
+	// x: 198
+	// y: 845
+	createPaddleStopper(224, 970, "left", "down");
+	createPaddleStopper(224, 824, "left", "up");
 
 	// right
-	createPaddleStopper(285, 845, "right", "down");
-	createPaddleStopper(285, 714, "right", "up");
+	createPaddleStopper(313, 970, "right", "down");
+	createPaddleStopper(313, 824, "right", "up");
 }
 
 function createPaddleStopper(x, y, side, position) {
@@ -122,8 +180,13 @@ function createPaddleStopper(x, y, side, position) {
 }
 
 function createPaddles() {
-	createPaddle(180, 794, 154, 780, -25, -12, -1.5, "left");
-	createPaddle(305, 794, 307, 780, 22, 18, 1.5, "right");
+	// hingeX: 154
+	// hingeY: 780
+	createPaddle(180, 890, 187, 890, -25, -12, -1.75, "left");
+
+	// hingeX: 307
+	// hingeY: 780
+	createPaddle(355, 890, 355, 890, 22, 18, 1.75, "right");
 }
 
 function createPaddle(x, y, hingeX, hingeY, pointA, pointB, scale, side) {
