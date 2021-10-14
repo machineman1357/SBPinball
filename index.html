@@ -11,6 +11,7 @@
 		<link rel="stylesheet" href="./styles/debugElements.css">
 		<link rel="stylesheet" href="./styles/paddlesInput.css">
 		<link rel="stylesheet" href="./styles/keyboardKey.css">
+		<link rel="stylesheet" href="./styles/statsBar.css">
 
 		<!-- Libraries -->
 		<script src="//cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
@@ -23,7 +24,9 @@
 		<canvas id="gameCanvas"></canvas>
 
 		<!-- Debug Elements -->
-		<div id="debugElements_container"></div>
+		<div id="debugElements_container">
+			<div>Update: 2</div>
+		</div>
 
 		<!-- Paddles Input -->
 		<div id="paddlesInput_container">
@@ -39,6 +42,12 @@
 					<div class="keyboardKeys_container"></div>
 				</div>
 			</div>
+		</div>
+
+		<!-- Stats Bar -->
+		<div id="statsBar_container">
+			<div id="statsBar_multiplier">0x</div>
+			<div id="statsBar_score">0</div>
 		</div>
 	</body>
 </html>

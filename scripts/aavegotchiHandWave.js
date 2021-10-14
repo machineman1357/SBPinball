@@ -1,5 +1,5 @@
-import { mainScene } from "./game.js";
 import { game } from "./phaserSetup.js";
+import { mainScene } from "./scene_pinball.js";
 import { getMouseWorldPosition_phaser } from "./utils.js";
 
 export let aavegotchiHandWave;
@@ -53,10 +53,8 @@ class AavegotchiHandWave {
 	}
 
 	aavegotchiHandWave_moveToMouse() {
-		const worldPos = getMouseWorldPosition_phaser(mainScene);
 		const cam = mainScene.cameras.main;
 		this.handImage.x = game.input.activePointer.position.x / cam.zoom;
 		this.handImage.y = game.input.activePointer.position.y / cam.zoom + 50;
-		console.log(this.handImage.x, this.handImage.y);
 	}
 }

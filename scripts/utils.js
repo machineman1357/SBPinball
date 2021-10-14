@@ -11,3 +11,41 @@ export function getMouseWorldPosition_phaser(mainScene) {
 		console.warn("mainScene or game is undefined");
 	}
 }
+
+export function getNormalizedDirectionAndAngle(x1, y1, x2, y2) {
+	const dirX = x2 - x1;
+	const dirY = y2 - y1;
+
+	let length = Math.sqrt(dirX * dirX + dirY * dirY);
+	if(length === 0) { length = 1; }
+
+	const ndx = dirX / length;	// x normalized
+    const ndy = dirY / length;
+
+	const angle = Math.atan2(ndx, ndy);
+
+	return { x: ndx, y: ndy, angle: angle};
+}
+
+// check if the inputted names (nameA & nameB) match the must be names in either order, and return the order of the matched names
+export function isCompareEitherOrBodies(nameA, nameB, nameAMustBe, nameBMustBe, bodyA, bodyB) {
+	if(nameA === nameAMustBe && nameB === nameBMustBe) {
+		return {
+			isSuccess: true,
+			firstBody: bodyA,
+			secondBody: bodyB
+		};
+	};
+
+	if(nameA === nameBMustBe && nameB === nameAMustBe) {
+		return {
+			isSuccess: true,
+			firstBody: bodyB,
+			secondBody: bodyA
+		};
+	}
+
+	return {
+		isSuccess: false
+	};
+}
