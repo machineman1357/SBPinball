@@ -49,3 +49,13 @@ export function isCompareEitherOrBodies(nameA, nameB, nameAMustBe, nameBMustBe, 
 		isSuccess: false
 	};
 }
+
+export function isAngleBetweenAngles(facingAngle_deg, angleOfTarget_deg, angleWithin_deg) {
+	const anglediff = (facingAngle_deg - angleOfTarget_deg + 180 + 360) % 360 - 180
+
+	if (anglediff <= angleWithin_deg && anglediff >= -angleWithin_deg) {
+		return true;
+	} else {
+		return false;
+	}
+}

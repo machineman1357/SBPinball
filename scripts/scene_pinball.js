@@ -1,10 +1,12 @@
 import { aavegotchiHandWave_start } from "./aavegotchiHandWave.js";
-import { arrows_start, tripleArrows_left, tripleArrows_right } from "./arrows.js";
+import { arrows_start, singleArrows, tripleArrows_left, tripleArrows_right } from "./arrows.js";
 import { COLLISION_CATEGORIES } from "./collisionCategories.js";
 import { set_cursorElement } from "./debugElements.js";
+import { multipliers_start, multipliers_update, toggleMultiplier } from "./multipliers.js";
 import { isInputDown_leftPaddle, isInputDown_rightPaddle } from "./paddlesInput.js";
+import { game } from "./phaserSetup.js";
 import { statsBar_start } from "./statsBar.js";
-import { getNormalizedDirectionAndAngle, isCompareEitherOrBodies } from "./utils.js";
+import { getNormalizedDirectionAndAngle, isAngleBetweenAngles, isCompareEitherOrBodies } from "./utils.js";
 
 export let mainScene;
 
@@ -19,9 +21,12 @@ const playerBall_depth = 3;
 const isCreateBGRef = false;
 
 const bg_scrubbed_collisionShape = {
-	x: 370,
-	y: 460
+	x: 360,
+	y: 455
 };
+
+let ballGraphics;
+const is_drawBallVelocityLine = false;
 
 export class PinballScene extends Phaser.Scene {
     constructor () {
@@ -40,6 +45,7 @@ export class PinballScene extends Phaser.Scene {
 		this.load.image("arrow_red", "./assets/images/arrow_red.png");
 		this.load.image("arrow_purple", "./assets/images/arrow_purple.png");
 		this.load.image("timer", "./assets/images/timer.png");
+		this.load.image("multiplier_activated", "./assets/images/multiplier_activated.png");
 
 		// Load body shapes from JSON file generated using PhysicsEditor
 		this.load.json('shapes', 'assets/json/bg_scrubbed.json');
@@ -68,13 +74,53 @@ export class PinballScene extends Phaser.Scene {
 		this.create_portalAnimation();
 		statsBar_start();
 		arrows_start();
+		multipliers_start();
+
+		ballGraphics = this.add.graphics({x: 0, y: 0});
     }
 
 	update() {
-		// const cam = mainScene.cameras.main;
-		// ass.x = game.input.activePointer.position.x / cam.zoom;
-		// ass.y = game.input.activePointer.position.y / cam.zoom + 50;
-		// console.log(ass.x, ass.y);
+		if(is_drawBallVelocityLine) draw_ballVelocityLine();
+		// tripleArrows_left.tripleArrows_update();
+
+		// used for calculating the angle of the arrow used
+		// this.log_isMouseWithinArrowAngle();
+		multipliers_update();
+	}
+
+	log_isMouseWithinArrowAngle() {
+		const cam = mainScene.cameras.main;
+		const mousePos_x = game.input.activePointer.position.x / cam.zoom;
+		const mousePos_y = game.input.activePointer.position.y / cam.zoom;
+
+		const normDirAndAngle = getNormalizedDirectionAndAngle(
+			singleArrows["singleArrow_1"].arrowSprite.x,
+			singleArrows["singleArrow_1"].arrowSprite.y,
+			mousePos_x,
+			mousePos_y
+		);
+		const angle_deg = Phaser.Math.RadToDeg(normDirAndAngle.angle);
+		const isWithin = isAngleBetweenAngles(angle_deg, -160, 65);
+
+		console.log(normDirAndAngle.angle, angle_deg, isWithin);
+		// if(isWithin) {
+		// 	document.body.style.backgroundColor = "green";
+		// } else {
+		// 	document.body.style.backgroundColor = "red";
+		// }
+	}
+
+	draw_ballVelocityLine() {
+		ballGraphics.lineStyle(5, 0xff0000, 1.0);
+		// ballGraphics.fillStyle(0xff0000, 1.0);
+		ballGraphics.beginPath();
+		ballGraphics.moveTo(ball.body.position.x, ball.body.position.y);
+		ballGraphics.lineTo(
+			ball.body.position.x + ball.body.velocity.x * 10,
+			ball.body.position.y + ball.body.velocity.y * 10
+		);
+		ballGraphics.closePath();
+		ballGraphics.strokePath();
 	}
 
 	create_portalAnimation() {
@@ -148,7 +194,11 @@ export class PinballScene extends Phaser.Scene {
 	
 	setUpEvents() {
 		mainScene.input.on('pointermove', function (pointer) {
-			set_cursorElement(Math.round(pointer.x * 1000) / 1000, Math.round(pointer.y * 1000) / 1000);
+			const cam = mainScene.cameras.main;
+			const pointerX = pointer.position.x / cam.zoom;
+			const pointerY = pointer.position.y / cam.zoom;
+
+			set_cursorElement(Math.round(pointerX * 1000) / 1000, Math.round(pointerY * 1000) / 1000);
 		}, mainScene);
 	
 		// collision filtering
@@ -158,29 +208,39 @@ export class PinballScene extends Phaser.Scene {
 	}
 	
 	collisionFiltering(event, bodyA, bodyB) {
-		// disabled this because it seems there's a bug where only one body is called when 2 bodies are in sensor simultaneously
-		// const compareData_PB_BSFS = isCompareEitherOrBodies(bodyA.label, bodyB.label, "PlayerBall", "ballShootForceSensor", bodyA, bodyB);
-		// const compareData_PB_FRS = isCompareEitherOrBodies(bodyA.label, bodyB.label, "PlayerBall", "failResetSensor", bodyA, bodyB);
 		const compareData_PB_GHSTB = isCompareEitherOrBodies(bodyA.label, bodyB.label, "PlayerBall", "ghstBumper", bodyA, bodyB);
 		const compareData_PB_TASL = isCompareEitherOrBodies(bodyA.label, bodyB.label, "PlayerBall", "tripleArrowSensor_left", bodyA, bodyB);
 		const compareData_PB_TASR = isCompareEitherOrBodies(bodyA.label, bodyB.label, "PlayerBall", "tripleArrowSensor_right", bodyA, bodyB);
 		const compareData_PB_PS = isCompareEitherOrBodies(bodyA.label, bodyB.label, "PlayerBall", "portalSensor", bodyA, bodyB);
+		const compareData_PB_SAS = isCompareEitherOrBodies(bodyA.label, bodyB.label, "PlayerBall", "singleArrowSensor", bodyA, bodyB);
+
+		// multiplier sensors
+		const compareData_PB_MSL = isCompareEitherOrBodies(bodyA.label, bodyB.label, "PlayerBall", "multiplierSensor_left", bodyA, bodyB);
+		const compareData_PB_MSM = isCompareEitherOrBodies(bodyA.label, bodyB.label, "PlayerBall", "multiplierSensor_middle", bodyA, bodyB);
+		const compareData_PB_MSR = isCompareEitherOrBodies(bodyA.label, bodyB.label, "PlayerBall", "multiplierSensor_right", bodyA, bodyB);
 	
 		this.doBehaviour_checkIfAnyBallsAreIn_ballShootForceSensor();
 		this.doBehaviour_checkIfAnyBallsAreIn_failResetSensor();
 	
-		/*if(compareData_PB_BSFS.isSuccess) {console.log("reset");
-			compareData_PB_BSFS.firstBody.gameObject.setVelocity(0, -25 + Phaser.Math.Between(-2, 2));
-		} else if(compareData_PB_FRS.isSuccess) {
-			compareData_PB_FRS.firstBody.gameObject.setPosition(ballShootPosition[0], ballShootPosition[1]);
-		} else */if(compareData_PB_GHSTB.isSuccess) {
+		if(compareData_PB_GHSTB.isSuccess) {
 			this.pushBodyAwayFrom(compareData_PB_GHSTB.firstBody, compareData_PB_GHSTB.secondBody, 5);
 		} else if(compareData_PB_TASL.isSuccess) {
-			tripleArrows_left.tripleArrows_onBallHit();
+			tripleArrows_left.tripleArrows_onBallHit(ball);
 		} else if(compareData_PB_TASR.isSuccess) {
-			tripleArrows_right.tripleArrows_onBallHit();
+			tripleArrows_right.tripleArrows_onBallHit(ball);
 		} else if(compareData_PB_PS.isSuccess) {
 			mainScene.scene.start('PlinkoScene');
+		} else if(compareData_PB_SAS.isSuccess) {
+			const singleArrowName = compareData_PB_SAS.secondBody.gameObject.MACHINEMAN1357_singleArrowName;
+			singleArrows[singleArrowName].singleArrow_onBallHit(ball);
+		}
+		// multiplier sensors
+		else if(compareData_PB_MSL.isSuccess) {
+			toggleMultiplier("left");
+		} else if(compareData_PB_MSM.isSuccess) {
+			toggleMultiplier("middle");
+		} else if(compareData_PB_MSR.isSuccess) {
+			toggleMultiplier("right");
 		}
 	}
 	
@@ -191,7 +251,7 @@ export class PinballScene extends Phaser.Scene {
 			const body = bodies[i];
 			
 			if(body.label === "PlayerBall") {
-				body.gameObject.setVelocity(0, -25 + Phaser.Math.Between(-2, 2));
+				body.gameObject.setVelocity(0, -25 + Phaser.Math.Between(-6, -2));
 			}
 		}
 	}

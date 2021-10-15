@@ -26,6 +26,7 @@ export class PlinkoScene extends Phaser.Scene {
 
 		this.create_balls();
 		this.matter.add.mouseSpring();
+		this.matter.world.setBounds();
     }
 
 	update() {
