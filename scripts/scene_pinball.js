@@ -4,6 +4,7 @@ import { COLLISION_CATEGORIES } from "./collisionCategories.js";
 import { set_cursorElement } from "./debugElements.js";
 import { multipliers_start, multipliers_update, toggleMultiplier } from "./multipliers.js";
 import { isInputDown_leftPaddle, isInputDown_rightPaddle } from "./paddlesInput.js";
+import { passThroughLight_start, passThroughLight_update } from "./passThroughLights.js";
 import { game } from "./phaserSetup.js";
 import { statsBar_start } from "./statsBar.js";
 import { getNormalizedDirectionAndAngle, isAngleBetweenAngles, isCompareEitherOrBodies } from "./utils.js";
@@ -15,7 +16,7 @@ let ballShootForceSensor_body;
 let failResetSensor_body;
 const PADDLE_PULL = 0.0005;
 const ballShootPosition = [552, 777];
-const playerBall_depth = 3;
+const playerBall_depth = 5;
 
 // debug
 const isCreateBGRef = false;
@@ -46,6 +47,7 @@ export class PinballScene extends Phaser.Scene {
 		this.load.image("arrow_purple", "./assets/images/arrow_purple.png");
 		this.load.image("timer", "./assets/images/timer.png");
 		this.load.image("multiplier_activated", "./assets/images/multiplier_activated.png");
+		this.load.atlas("passThroughLights", "./assets/images/passThroughLights/passThroughLights_atlas.png", "./assets/images/passThroughLights/passThroughLights_atlas.json");
 
 		// Load body shapes from JSON file generated using PhysicsEditor
 		this.load.json('shapes', 'assets/json/bg_scrubbed.json');
@@ -75,6 +77,7 @@ export class PinballScene extends Phaser.Scene {
 		statsBar_start();
 		arrows_start();
 		multipliers_start();
+		passThroughLight_start();
 
 		ballGraphics = this.add.graphics({x: 0, y: 0});
     }
@@ -86,6 +89,7 @@ export class PinballScene extends Phaser.Scene {
 		// used for calculating the angle of the arrow used
 		// this.log_isMouseWithinArrowAngle();
 		multipliers_update();
+		passThroughLight_update();
 	}
 
 	log_isMouseWithinArrowAngle() {
@@ -185,8 +189,8 @@ export class PinballScene extends Phaser.Scene {
 		}).setDepth(playerBall_depth);
 		ball.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
 
-		ball.setFriction(0.00001);
-		ball.setBounce(0.3);
+		ball.setFriction(0.00000);
+		ball.setBounce(0.5);
 	
 		ball.setCollisionCategory(COLLISION_CATEGORIES.BALL);
 		ball.setCollidesWith([COLLISION_CATEGORIES.PADDLE, COLLISION_CATEGORIES.DEFAULT, COLLISION_CATEGORIES.BALL]);
@@ -218,6 +222,8 @@ export class PinballScene extends Phaser.Scene {
 		const compareData_PB_MSL = isCompareEitherOrBodies(bodyA.label, bodyB.label, "PlayerBall", "multiplierSensor_left", bodyA, bodyB);
 		const compareData_PB_MSM = isCompareEitherOrBodies(bodyA.label, bodyB.label, "PlayerBall", "multiplierSensor_middle", bodyA, bodyB);
 		const compareData_PB_MSR = isCompareEitherOrBodies(bodyA.label, bodyB.label, "PlayerBall", "multiplierSensor_right", bodyA, bodyB);
+
+		const compareData_PB_PTLS = isCompareEitherOrBodies(bodyA.label, bodyB.label, "PlayerBall", "passThroughLight_sensor", bodyA, bodyB);
 	
 		this.doBehaviour_checkIfAnyBallsAreIn_ballShootForceSensor();
 		this.doBehaviour_checkIfAnyBallsAreIn_failResetSensor();
@@ -241,6 +247,8 @@ export class PinballScene extends Phaser.Scene {
 			toggleMultiplier("middle");
 		} else if(compareData_PB_MSR.isSuccess) {
 			toggleMultiplier("right");
+		} else if(compareData_PB_PTLS.isSuccess) {
+			compareData_PB_PTLS.secondBody.gameObject.MACHINEMAN1357_passThroughLight_class.toggleLight();
 		}
 	}
 	
