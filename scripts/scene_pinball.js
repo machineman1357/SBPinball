@@ -1,29 +1,34 @@
 import { aavegotchiHandWave_start } from "./aavegotchiHandWave.js";
 import { arrows_start, singleArrows, tripleArrows_left, tripleArrows_right } from "./arrows.js";
 import { COLLISION_CATEGORIES } from "./collisionCategories.js";
+import { config } from "./config.js";
 import { set_cursorElement } from "./debugElements.js";
+import { leftBlackHole_start, leftBlackHole_update, on_ballEnteredHole } from "./leftBlackHole.js";
 import { multipliers_start, multipliers_update, toggleMultiplier } from "./multipliers.js";
 import { isInputDown_leftPaddle, isInputDown_rightPaddle } from "./paddlesInput.js";
 import { passThroughLight_start, passThroughLight_update } from "./passThroughLights.js";
 import { game } from "./phaserSetup.js";
+import { increaseScore } from "./stats.js";
 import { statsBar_start } from "./statsBar.js";
 import { getNormalizedDirectionAndAngle, isAngleBetweenAngles, isCompareEitherOrBodies } from "./utils.js";
+import { wallBumper_start, wallBumper_update } from "./wallBumper.js";
 
 export let mainScene;
 
-let ball;
+export let ball;
 let ballShootForceSensor_body;
 let failResetSensor_body;
 const PADDLE_PULL = 0.0005;
 const ballShootPosition = [552, 777];
 const playerBall_depth = 5;
+const ballResetForce = -20;
 
 // debug
 const isCreateBGRef = false;
 
 const bg_scrubbed_collisionShape = {
-	x: 360,
-	y: 455
+	x: 362,
+	y: 452
 };
 
 let ballGraphics;
@@ -38,6 +43,7 @@ export class PinballScene extends Phaser.Scene {
 		this.load.atlas('bg_scrubbed', 'assets/images/bg_scrubbed.png', 'assets/images/bg_scrubbed.json');
 		this.load.spritesheet('portal', 'assets/images/portal_spritesheet.png', { frameWidth: 706, frameHeight: 836 });
 		this.load.spritesheet('ghst', 'assets/images/ghst_atlas.png', { frameWidth: 231, frameHeight: 231 });
+		this.load.spritesheet('spinCoin_atlas', 'assets/images/spinCoin_atlas.png', { frameWidth: 106, frameHeight: 106 });
 
 		this.load.image("bg_ref", "./assets/images/bg_ref.png");
 		this.load.image("pinball", "./assets/images/pinball.png");
@@ -48,6 +54,9 @@ export class PinballScene extends Phaser.Scene {
 		this.load.image("timer", "./assets/images/timer.png");
 		this.load.image("multiplier_activated", "./assets/images/multiplier_activated.png");
 		this.load.atlas("passThroughLights", "./assets/images/passThroughLights/passThroughLights_atlas.png", "./assets/images/passThroughLights/passThroughLights_atlas.json");
+		this.load.image("wallBumper_l_edge", "./assets/images/wallBumper/wallBumper_l_edge.png");
+		this.load.image("wallBumper_l_tube", "./assets/images/wallBumper/wallBumper_l_tube.png");
+		this.load.image("leftBlackHole_blocker", "./assets/images/x2_warp_wall.png");
 
 		// Load body shapes from JSON file generated using PhysicsEditor
 		this.load.json('shapes', 'assets/json/bg_scrubbed.json');
@@ -78,6 +87,9 @@ export class PinballScene extends Phaser.Scene {
 		arrows_start();
 		multipliers_start();
 		passThroughLight_start();
+		this.createSpinCoinAnimation();
+		wallBumper_start();
+		leftBlackHole_start();
 
 		ballGraphics = this.add.graphics({x: 0, y: 0});
     }
@@ -90,6 +102,27 @@ export class PinballScene extends Phaser.Scene {
 		// this.log_isMouseWithinArrowAngle();
 		multipliers_update();
 		passThroughLight_update();
+		wallBumper_update();
+		leftBlackHole_update();
+
+		// ball.applyForce({
+		// 	x: 0,
+		// 	y: 0.0001
+		// });
+	}
+
+	createSpinCoinAnimation() {
+		var config = {
+			key: 'spinCoinAnimation',
+			frames: mainScene.anims.generateFrameNumbers('spinCoin_atlas', { start: 0, end: 1, first: 0 }),
+			frameRate: 5,
+			repeat: -1
+		};
+	
+		mainScene.anims.create(config);
+		mainScene.add.sprite(480, 315, 'spinCoin_atlas')
+			.play('spinCoinAnimation')
+			.setScale(0.3);
 	}
 
 	log_isMouseWithinArrowAngle() {
@@ -224,12 +257,16 @@ export class PinballScene extends Phaser.Scene {
 		const compareData_PB_MSR = isCompareEitherOrBodies(bodyA.label, bodyB.label, "PlayerBall", "multiplierSensor_right", bodyA, bodyB);
 
 		const compareData_PB_PTLS = isCompareEitherOrBodies(bodyA.label, bodyB.label, "PlayerBall", "passThroughLight_sensor", bodyA, bodyB);
+		const compareData_PB_WB = isCompareEitherOrBodies(bodyA.label, bodyB.label, "PlayerBall", "wallBumper_sensor", bodyA, bodyB);
+		const compareData_PB_TLHS = isCompareEitherOrBodies(bodyA.label, bodyB.label, "PlayerBall", "topLeftHole_sensor", bodyA, bodyB);
+		const compareData_PB_CS = isCompareEitherOrBodies(bodyA.label, bodyB.label, "PlayerBall", "coinSensor", bodyA, bodyB);
 	
 		this.doBehaviour_checkIfAnyBallsAreIn_ballShootForceSensor();
 		this.doBehaviour_checkIfAnyBallsAreIn_failResetSensor();
 	
 		if(compareData_PB_GHSTB.isSuccess) {
 			this.pushBodyAwayFrom(compareData_PB_GHSTB.firstBody, compareData_PB_GHSTB.secondBody, 5);
+			increaseScore(config.score.ghstBumper);
 		} else if(compareData_PB_TASL.isSuccess) {
 			tripleArrows_left.tripleArrows_onBallHit(ball);
 		} else if(compareData_PB_TASR.isSuccess) {
@@ -240,6 +277,7 @@ export class PinballScene extends Phaser.Scene {
 			const singleArrowName = compareData_PB_SAS.secondBody.gameObject.MACHINEMAN1357_singleArrowName;
 			singleArrows[singleArrowName].singleArrow_onBallHit(ball);
 		}
+
 		// multiplier sensors
 		else if(compareData_PB_MSL.isSuccess) {
 			toggleMultiplier("left");
@@ -247,8 +285,17 @@ export class PinballScene extends Phaser.Scene {
 			toggleMultiplier("middle");
 		} else if(compareData_PB_MSR.isSuccess) {
 			toggleMultiplier("right");
-		} else if(compareData_PB_PTLS.isSuccess) {
+		}
+		
+		else if(compareData_PB_PTLS.isSuccess) {
 			compareData_PB_PTLS.secondBody.gameObject.MACHINEMAN1357_passThroughLight_class.toggleLight();
+		} else if(compareData_PB_WB.isSuccess) {
+			compareData_PB_WB.secondBody.MACHINEMAN1357_wallBumper.on_hitByBall();
+			increaseScore(config.score.wallBumperSensor);
+		} else if(compareData_PB_TLHS.isSuccess) {
+			on_ballEnteredHole();
+		} else if(compareData_PB_CS.isSuccess) {
+			increaseScore(config.score.pointsReceive_spinningCoin);
 		}
 	}
 	
@@ -259,7 +306,7 @@ export class PinballScene extends Phaser.Scene {
 			const body = bodies[i];
 			
 			if(body.label === "PlayerBall") {
-				body.gameObject.setVelocity(0, -25 + Phaser.Math.Between(-6, -2));
+				body.gameObject.setVelocity(0, ballResetForce + Phaser.Math.Between(-6, -2));
 			}
 		}
 	}

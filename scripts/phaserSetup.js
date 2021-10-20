@@ -4,7 +4,7 @@ import { PlinkoScene } from "./scene_plinko.js";
 const config = {
     type: Phaser.WEBGL,
     width: 565,
-	height: window.innerHeight,
+	height: 854 /*window.innerHeight*/,
 	canvas: document.getElementById('gameCanvas'),
 	// pixelArt: true,
     scene: [
@@ -16,12 +16,14 @@ const config = {
 		matter: {
 			gravity: {
                 x: 0,
-				y: 0.15 // default: 0.3
+				y: 0.18 // default: 0.15
             },
 		  	// debug: true,
 			plugins: {
                 attractors: true
-            }
+            },
+			positionIterations: 12,
+			velocityIterations: 8
 		}
 	},
 	scale: {

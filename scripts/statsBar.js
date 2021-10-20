@@ -28,6 +28,6 @@ export function set_multiplierText(text) {
 	ref_statsBar_multiplier.innerHTML = "x" + text;
 }
 
-function set_scoreText(text) {
+export function set_scoreText(text) {
 	ref_scoreEl.innerHTML = text;
 }

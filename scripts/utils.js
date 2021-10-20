@@ -59,3 +59,13 @@ export function isAngleBetweenAngles(facingAngle_deg, angleOfTarget_deg, angleWi
 		return false;
 	}
 }
+
+export function moveSpriteToMousePosAndLog(scene, sprite, extraX, extraY) {
+	extraX = extraX === undefined ? 0 : extraX;
+	extraY = extraY === undefined ? 0 : extraY;
+
+	const cam = scene.cameras.main;
+	sprite.x = game.input.activePointer.position.x / cam.zoom + extraX;
+	sprite.y = game.input.activePointer.position.y / cam.zoom + extraY;
+	console.log(sprite.x, sprite.y);
+}
