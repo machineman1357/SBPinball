@@ -165,8 +165,10 @@ export class PlinkoScene extends Phaser.Scene {
 		if(ballsCompleted === ballsNeededToFinishLevel) {
 			console.log("All balls completed!");
 
-			isChangingScene = true;
-			this.scene.start('PinballScene');
+			setTimeout(() => {
+				isChangingScene = true;
+				this.scene.start('PinballScene');
+			}, config.scene_plinko.timeBefore_endOfSceneToPinballSwitch_ms);
 		}
 	}
 

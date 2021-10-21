@@ -15,5 +15,8 @@ export const config = {
 		blueTube: 50,
 		yellowTube: 100,
 		greenTube: 5
+	},
+	scene_plinko: {
+		timeBefore_endOfSceneToPinballSwitch_ms: 2000
 	}
 };
