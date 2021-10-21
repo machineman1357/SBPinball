@@ -19,6 +19,10 @@ export function increase_ballsUnlockedForPlinko() {
 	ballsUnlockedForPlinko += 1;
 }
 
+export function reset_ballsUnlockedForPlinko() {
+	ballsUnlockedForPlinko = 1;
+}
+
 function setCanvasSize() {
 	const maxWidth = 565;
 	const maxHeight = 854;

@@ -9,6 +9,11 @@ export const config = {
 	score: {
 		pointsReceive_spinningCoin: 500,
 		ghstBumper: 100,
-		wallBumperSensor: 100
+		wallBumperSensor: 100,
+		redRing: 1000,
+		purpleTube: 10,
+		blueTube: 50,
+		yellowTube: 100,
+		greenTube: 5
 	}
 };

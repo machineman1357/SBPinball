@@ -3,14 +3,15 @@ import { arrows_start, singleArrows, tripleArrows_left, tripleArrows_right } fro
 import { COLLISION_CATEGORIES } from "./collisionCategories.js";
 import { config } from "./config.js";
 import { set_cursorElement } from "./debugElements.js";
-import { leftBlackHole_start, leftBlackHole_update, on_ballEnteredHole } from "./leftBlackHole.js";
+import { reset_ballsUnlockedForPlinko } from "./game.js";
+import { LBH_timeOuts, leftBlackHole_start, leftBlackHole_update, on_ballEnteredHole } from "./leftBlackHole.js";
 import { multipliers_start, multipliers_update, toggleMultiplier } from "./multipliers.js";
 import { isInputDown_leftPaddle, isInputDown_rightPaddle } from "./paddlesInput.js";
 import { passThroughLight_start, passThroughLight_update } from "./passThroughLights.js";
 import { game } from "./phaserSetup.js";
 import { increaseScore } from "./stats.js";
 import { statsBar_start } from "./statsBar.js";
-import { getNormalizedDirectionAndAngle, isAngleBetweenAngles, isCompareEitherOrBodies } from "./utils.js";
+import { getNormalizedDirectionAndAngle, isAngleBetweenAngles, isCompareEitherOrBodies, pushBodyAwayFrom } from "./utils.js";
 import { wallBumper_start, wallBumper_update } from "./wallBumper.js";
 
 export let mainScene;
@@ -18,7 +19,7 @@ export let mainScene;
 export let ball;
 let ballShootForceSensor_body;
 let failResetSensor_body;
-const PADDLE_PULL = 0.0005;
+const PADDLE_PULL = 0.00055; // default: 0.0005
 const ballShootPosition = [552, 777];
 const playerBall_depth = 5;
 const ballResetForce = -20;
@@ -57,12 +58,19 @@ export class PinballScene extends Phaser.Scene {
 		this.load.image("wallBumper_l_edge", "./assets/images/wallBumper/wallBumper_l_edge.png");
 		this.load.image("wallBumper_l_tube", "./assets/images/wallBumper/wallBumper_l_tube.png");
 		this.load.image("leftBlackHole_blocker", "./assets/images/x2_warp_wall.png");
+		this.load.image("plinko_tubesAndGridBG", "./assets/images/plinko-scene/plinko_tubesAndGridBG.png");
+		this.load.image("redRing", "./assets/images/plinko-scene/redRing.png");
+		this.load.image("plinko_border", "./assets/images/plinko-scene/plinko_border.png");
+		this.load.image("plinko_universeBG", "./assets/images/plinko-scene/plinko_universeBG.png");
+		this.load.image("plinko_tubes", "./assets/images/plinko-scene/plinko_tubes.png");
 
 		// Load body shapes from JSON file generated using PhysicsEditor
 		this.load.json('shapes', 'assets/json/bg_scrubbed.json');
 	}
 
     create () {
+		reset_ballsUnlockedForPlinko();
+
         mainScene = this;
 
 		// mainScene.scene.start('PlinkoScene');
@@ -216,11 +224,12 @@ export class PinballScene extends Phaser.Scene {
 		ball = mainScene.matter.add.image(xPos, yPos, 'pinball', null, {
 			shape: {
 				type: 'circle',
-				radius: 12
+				radius: 18
 			},
 			label: "PlayerBall"
 		}).setDepth(playerBall_depth);
 		ball.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
+		ball.scale = 1.5;
 
 		ball.setFriction(0.00000);
 		ball.setBounce(0.5);
@@ -265,13 +274,17 @@ export class PinballScene extends Phaser.Scene {
 		this.doBehaviour_checkIfAnyBallsAreIn_failResetSensor();
 	
 		if(compareData_PB_GHSTB.isSuccess) {
-			this.pushBodyAwayFrom(compareData_PB_GHSTB.firstBody, compareData_PB_GHSTB.secondBody, 5);
+			pushBodyAwayFrom(compareData_PB_GHSTB.firstBody, compareData_PB_GHSTB.secondBody, 5);
 			increaseScore(config.score.ghstBumper);
 		} else if(compareData_PB_TASL.isSuccess) {
 			tripleArrows_left.tripleArrows_onBallHit(ball);
 		} else if(compareData_PB_TASR.isSuccess) {
 			tripleArrows_right.tripleArrows_onBallHit(ball);
 		} else if(compareData_PB_PS.isSuccess) {
+			for (let i = 0, len = LBH_timeOuts.length; i < len; i++) {
+				const LBH_timeOut = LBH_timeOuts[i];
+				clearTimeout(LBH_timeOut);
+			}
 			mainScene.scene.start('PlinkoScene');
 		} else if(compareData_PB_SAS.isSuccess) {
 			const singleArrowName = compareData_PB_SAS.secondBody.gameObject.MACHINEMAN1357_singleArrowName;
@@ -323,32 +336,23 @@ export class PinballScene extends Phaser.Scene {
 		}
 	}
 	
-	pushBodyAwayFrom(bodyA, bodyB, force) {
-		const posA = bodyA.position;
-		const posB = bodyB.position;
-	
-		const normDir = getNormalizedDirectionAndAngle(posB.x, posB.y, posA.x, posA.y);
-	
-		bodyA.gameObject.setVelocity(normDir.x * force, normDir.y * force);
-	}
-	
 	createPaddleStoppers() {
 		// left
 		// x: 198
 		// y: 845
-		this.createPaddleStopper(224, 970, "left", "down");
-		this.createPaddleStopper(224, 824, "left", "up");
+		this.createPaddleStopper(194, 970, "left", "down");
+		this.createPaddleStopper(194, 804, "left", "up");
 	
 		// right
-		this.createPaddleStopper(313, 970, "right", "down");
-		this.createPaddleStopper(313, 824, "right", "up");
+		this.createPaddleStopper(343, 970, "right", "down");
+		this.createPaddleStopper(343, 804, "right", "up");
 	}
 	
 	createPaddleStopper(x, y, side, position) {
 		// determine which paddle composite to interact with
 		let attracteeLabel = (side === 'left') ? 'paddleLeft' : 'paddleRight';
 	
-		const paddleStopper = mainScene.matter.add.circle(x, y, 32, {
+		const paddleStopper = mainScene.matter.add.circle(x, y, 50, {
 			isStatic: true,
 			plugin: {
 				attractors: [

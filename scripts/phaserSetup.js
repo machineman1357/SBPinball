@@ -16,7 +16,7 @@ const config = {
 		matter: {
 			gravity: {
                 x: 0,
-				y: 0.18 // default: 0.15
+				y: 0.25 // default: 0.15
             },
 		  	// debug: true,
 			plugins: {

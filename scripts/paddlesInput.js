@@ -17,7 +17,7 @@ const paddleKeyCodeInputs_right = ["KeyD", "ArrowRight"];
 export let isInputDown_leftPaddle = false;
 export let isInputDown_rightPaddle = false;
 
-let ref_paddlesInput_container;
+export let ref_paddlesInput_container;
 
 export function paddlesInput_start() {
 	setRefs();
@@ -30,6 +30,10 @@ export function setNewPaddlesInputContainerSize() {
 	const twoTimesPaddleInputsSize = 100 * 2;
 
 	ref_paddlesInput_container.style.width = canvasRect.width + twoTimesPaddleInputsSize + "px";
+}
+
+export function disable_paddlesInput() {
+	ref_paddlesInput_container.style.display = "none";
 }
 
 function createKeyboardKeysElements() {

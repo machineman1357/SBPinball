@@ -10,6 +10,7 @@ let blocker_go;
 let isHoleOpen = false;
 let blocker_spirte;
 let canEnterHole = true;
+export const LBH_timeOuts = [];
 
 export function leftBlackHole_start() {
 	create_blocker_collider();
@@ -30,9 +31,11 @@ export function on_sideBumperHit() {
 		isHoleOpen = true;
 		openHole();
 
-		setTimeout(() => {
+		const timeOut_closeHole = setTimeout(() => {
 			closeHole();
 		}, config.topLeftHole.staysOpenFor_ms);
+
+		LBH_timeOuts.push(timeOut_closeHole);
 	}
 }
 
@@ -74,9 +77,11 @@ function ballEnterHole() {
 	ball.setVelocity(0, 0);
 	ball.alpha = 0;
 
-	setTimeout(() => {
+	const timeOut_ballExitHole = setTimeout(() => {
 		ballExitHole();
 	}, config.topLeftHole.timeInHole_ms);
+
+	LBH_timeOuts.push(timeOut_ballExitHole);
 }
 
 function ballExitHole() {
@@ -84,12 +89,15 @@ function ballExitHole() {
 	ball.setVelocity(0, config.topLeftHole.exitHoleVelocityY);
 	ball.alpha = 1;
 
-	setTimeout(() => {
+	const timeOut_canEnterHole = setTimeout(() => {
 		canEnterHole = true;
 	}, config.topLeftHole.timeBeforeBallCanEnterHoleAgain_ms);
 
 	set_isLeftBlackHoleOpen(true);
-	setTimeout(() => {
+	const timeOut_isLBHOpen = setTimeout(() => {
 		set_isLeftBlackHoleOpen(false);
 	}, config.topLeftHole.doublePointsLastFor_ms);
+
+	LBH_timeOuts.push(timeOut_canEnterHole);
+	LBH_timeOuts.push(timeOut_isLBHOpen);
 }

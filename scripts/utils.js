@@ -69,3 +69,12 @@ export function moveSpriteToMousePosAndLog(scene, sprite, extraX, extraY) {
 	sprite.y = game.input.activePointer.position.y / cam.zoom + extraY;
 	console.log(sprite.x, sprite.y);
 }
+
+export function pushBodyAwayFrom(bodyA, bodyB, force) {
+	const posA = bodyA.position;
+	const posB = bodyB.position;
+
+	const normDir = getNormalizedDirectionAndAngle(posB.x, posB.y, posA.x, posA.y);
+
+	bodyA.gameObject.setVelocity(normDir.x * force, normDir.y * force);
+}
